@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:ms_music_player/controllers/playlist_controller.dart';
 import 'package:ms_music_player/services/audio_service.dart';
 import 'package:ms_music_player/services/library_service.dart';
 import 'package:ms_music_player/controllers/library_controller.dart';
+import 'package:ms_music_player/services/metadata_service.dart';
 import 'package:ms_music_player/widgets/custom_appbar.dart';
 import 'package:ms_music_player/widgets/sidebar.dart';
 
 class LibraryPage extends StatelessWidget {
   final LibraryManager _libraryManager = Get.put(LibraryManager());
   final LibraryController _libraryController = Get.put(LibraryController());
+  final PlaylistController playlistController = Get.find();
   final AudioService audioService = Get.find();
-
+  final metadataService = MetadataService();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -156,8 +160,26 @@ class LibraryPage extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall,
                 overflow: TextOverflow.ellipsis,
               ),
-              onTap: () {
-                // Handle file selection
+              onTap: () async{
+                final metadata = await metadataService.extractMetadata(filePath);
+                final albumArtPath = await metadataService.extractAlbumArt(filePath);
+                List<Map<String, dynamic>> newSongs = [];
+                newSongs.add({
+                  'title': metadata['title'] ?? 'Unknown Title',
+                  'artist': metadata['artist'] ?? 'Unknown Artist',
+                  'album': metadata['album'] ?? 'Unknown Album',
+                  'duration': metadata['duration'] ?? '00:00',
+                  'album_art': albumArtPath ?? '',
+                  'file_path': filePath,
+                });
+                playlistController.addSongsToDatabase(newSongs);
+                audioService.player.setAudioSource(
+                  AudioSource.uri(Uri.file(filePath)),
+                  initialIndex: index,
+                  preload: true,
+                );
+                audioService.play();
+               Get.log('File Path: $filePath');
               },
             );
           },

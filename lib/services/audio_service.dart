@@ -175,6 +175,9 @@ class AudioService extends GetxService {
     }
   }
 
+  // get Audio player instance
+  AudioPlayer get player => _player;
+
   /// Dispose the audio player when the service is no longer needed
   @override
   void onClose() {

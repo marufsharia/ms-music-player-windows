@@ -85,7 +85,7 @@ class LibraryManager extends GetxService {
         audioService.play();
       }
     } catch (e) {
-      print('Error scanning folder: $e');
+      Get.log('Error scanning folder: $e');
     } finally {
       _libraryController.stopLoading();
     }
@@ -115,7 +115,13 @@ class LibraryManager extends GetxService {
 
   /// Retrieves all media files from the database
   Future<List<String>> getAllMediaFiles() async {
-    return await _dbService.getAllMediaFiles();
+    final db = await _dbService.database;
+    final List<Map<String, dynamic>> maps = await db.query('media_files');
+
+    return maps
+        .map((map) => map['file_path']?.toString() ?? '') // Null চেক করা হয়েছে
+        .where((path) => path.isNotEmpty)
+        .toList();
   }
 
   /// Checks if a file is a media file

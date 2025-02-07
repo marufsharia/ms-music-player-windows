@@ -9,6 +9,7 @@ import 'package:ms_music_player/widgets/sidebar.dart';
 class MusicPlayerHome extends StatelessWidget {
   final AudioService _audioService = Get.put(AudioService());
   final borderColor = Colors.white;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -18,7 +19,8 @@ class MusicPlayerHome extends StatelessWidget {
         width: 1,
         child: Column(
           children: [
-            CustomAppBar( // CustomAppBar widget
+            CustomAppBar(
+              // CustomAppBar widget
               title: 'MS Music Player',
               isBackButtonVisible: false,
               onBackButtonPressed: () {
@@ -38,35 +40,43 @@ class MusicPlayerHome extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.all(20),
+                            padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.grey[900],
+                              color:
+                                  Theme.of(context).colorScheme.surfaceVariant,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Welcome to MS Music",
-                                  style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
+                                  " Welcome to MS Music Player",
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                 ),
-                                SizedBox(height: 8),
+                                const SizedBox(height: 8),
                                 Text(
-                                  "Your personal music companion with a modern touch.",
-                                  style: TextStyle(color: Colors.white70),
+                                  "Manage your library, play your favorite songs, and enjoy the music!",
+                                  style: Theme.of(context).textTheme.bodyMedium,
                                 ),
-                                SizedBox(height: 16),
-                                ElevatedButton.icon(
-                                  onPressed: () {},
-                                  icon: Icon(Icons.play_arrow),
-                                  label: Text("Start Listening"),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blueAccent,
-                                  ),
+                                const SizedBox(height: 16),
+                                Wrap(
+                                  spacing: 16,
+                                  runSpacing: 16,
+                                  children: [
+                                    ElevatedButton.icon(
+                                      onPressed: () async {
+                                        await _audioService.loadAudioSource(0);
+                                        _audioService.play();
+                                      },
+                                      icon: const Icon(Icons.play_arrow),
+                                      label: const Text('Playing Now'),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -91,7 +101,8 @@ class MusicPlayerHome extends StatelessWidget {
                         Expanded(
                           child: GridView.builder(
                             padding: EdgeInsets.symmetric(horizontal: 16),
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 4,
                               crossAxisSpacing: 16,
                               mainAxisSpacing: 16,
@@ -116,7 +127,8 @@ class MusicPlayerHome extends StatelessWidget {
 
                         // Bottom Player Controls
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           child: PlayerControls(),
                         ),
                       ],

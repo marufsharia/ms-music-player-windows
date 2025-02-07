@@ -24,7 +24,6 @@ class DatabaseService {
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'media_database.db');
 
-
     return await openDatabase(
       path,
       version: 1,
@@ -33,7 +32,8 @@ class DatabaseService {
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    await db.execute('''
+    await db.execute(
+      '''
     CREATE TABLE media_files (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT,
@@ -51,13 +51,19 @@ class DatabaseService {
     for (var song in songsToAdd) {
       await db.insert(
         'media_files',
-        {'path': song},
+        {
+          'title': song['title'],
+          'artist': song['artist'],
+          'album': song['album'],
+          'duration': song['duration'],
+          'album_art': song['album_art'],
+          'file_path': song['file_path'],
+        },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
-
-
   }
+
 
   Future<void> deleteMediaFile(String filePath) async {
     final db = await database;
