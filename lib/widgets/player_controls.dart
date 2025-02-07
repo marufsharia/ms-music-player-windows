@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../services/audio_service.dart';
@@ -11,17 +10,18 @@ class PlayerControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Obx(() {
-      final theme = Theme.of(context);
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, -2),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             )
           ],
         ),
@@ -29,22 +29,9 @@ class PlayerControls extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildSongInfo(theme),
-            const SizedBox(height: 16),
             _buildPlaybackControls(theme),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(child: _buildProgressControls(theme)),
-                Padding(
-                  padding: const EdgeInsets.only(
-                      left: 16, right: 8, top: 0, bottom: 16),
-                  child: _buildVolumeControls(theme),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+            _buildProgressControls(theme),
+            _buildExtraControls(theme),
           ],
         ),
       );
@@ -55,13 +42,14 @@ class PlayerControls extends StatelessWidget {
     return Row(
       children: [
         CircleAvatar(
-          radius: 24,
+          radius: 32,
           backgroundColor: theme.colorScheme.primaryContainer,
           backgroundImage: audioService.currentAlbumArt.value.isNotEmpty
               ? FileImage(File(audioService.currentAlbumArt.value))
               : null,
           child: audioService.currentAlbumArt.value.isEmpty
-              ? Icon(Icons.music_note, color: theme.colorScheme.onPrimaryContainer)
+              ? Icon(Icons.music_note,
+                  color: theme.colorScheme.onPrimaryContainer)
               : null,
         ),
         const SizedBox(width: 12),
@@ -95,54 +83,48 @@ class PlayerControls extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
-          icon: Icon(Icons.shuffle,
-              color: audioService.isShuffleEnabled.value
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurface),
-          tooltip: 'Shuffle',
-          onPressed: audioService.toggleShuffle,
-        ),
+            icon: Icon(Icons.shuffle),
+            style: IconButton.styleFrom(
+              backgroundColor: audioService.isShuffleEnabled.value
+            ? theme.colorScheme.primary
+                : null, // Background color
+              shape: const CircleBorder(),
+            ),
+            color: audioService.isShuffleEnabled.value
+                ? Colors.black
+                : Colors.white,
+            onPressed: audioService.toggleShuffle),
         IconButton(
-          icon: const Icon(Icons.skip_previous),
-          tooltip: 'Previous track',
-          onPressed: audioService.playPrevious,
-        ),
+            icon: Icon(Icons.skip_previous),
+            onPressed: audioService.playPrevious),
         _buildPlayPauseButton(theme),
         IconButton(
-          icon: const Icon(Icons.skip_next),
-          tooltip: 'Next track',
-          onPressed: audioService.playNext,
-        ),
+            icon: Icon(Icons.skip_next), onPressed: audioService.playNext),
         IconButton(
-          icon: Icon(Icons.repeat,
-              color: audioService.isRepeatEnabled.value
+            icon: Icon(Icons.repeat),
+            style: IconButton.styleFrom(
+              backgroundColor: audioService.isRepeatEnabled.value
                   ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurface),
-          tooltip: 'Repeat',
-          onPressed: audioService.toggleRepeat,
-        ),
+                  : null, // Background color
+              shape: const CircleBorder(), // Adjust padding to control size
+            ),
+            color: audioService.isRepeatEnabled.value
+                ? Colors.black
+                : Colors.white,
+            onPressed: audioService.toggleRepeat),
       ],
     );
   }
 
   Widget _buildPlayPauseButton(ThemeData theme) {
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primary,
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        icon: Icon(
-          audioService.isPlaying.value ? Icons.pause : Icons.play_arrow,
-          color: theme.colorScheme.onPrimary,
-          size: 32,
-        ),
-        iconSize: 40,
-        onPressed: () =>
-        audioService.isPlaying.value
-            ? audioService.pause()
-            : audioService.play(),
-      ),
+    return FloatingActionButton(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      backgroundColor: theme.colorScheme.primary,
+      child: Icon(audioService.isPlaying.value ? Icons.pause : Icons.play_arrow,
+          size: 32),
+      onPressed: () => audioService.isPlaying.value
+          ? audioService.pause()
+          : audioService.play(),
     );
   }
 
@@ -151,7 +133,7 @@ class PlayerControls extends StatelessWidget {
       children: [
         Slider(
           value:
-          audioService.position.value.clamp(0, audioService.duration.value),
+              audioService.position.value.clamp(0, audioService.duration.value),
           min: 0,
           max: audioService.duration.value,
           onChangeEnd: audioService.seek,
@@ -159,49 +141,37 @@ class PlayerControls extends StatelessWidget {
           inactiveColor: theme.colorScheme.surfaceVariant,
           onChanged: (double value) {},
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(audioService.currentPosition.value,
-                  style: theme.textTheme.labelSmall),
-              Text(audioService.totalDuration.value,
-                  style: theme.textTheme.labelSmall),
-            ],
-          ),
-        ),
       ],
     );
   }
 
-  Widget _buildVolumeControls(ThemeData theme) {
-    return Obx(() {
-      return Row(
-        children: [
-          IconButton(
-            icon: Icon(
-              audioService.isMuted.value ? Icons.volume_off : Icons.volume_up,
-              size: 20,
+  Widget _buildExtraControls(ThemeData theme) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        IconButton(icon: Icon(Icons.equalizer), onPressed: () {}),
+        // EQ Button
+        IconButton(icon: Icon(Icons.playlist_play), onPressed: () {}),
+        // Playlist Button
+        Row(
+          children: [
+            IconButton(
+              icon: Icon(audioService.isMuted.value
+                  ? Icons.volume_off
+                  : Icons.volume_up),
+              onPressed: audioService.mute,
             ),
-            color: theme.colorScheme.onSurface,
-            onPressed: () {
-              audioService.mute();
-            },
-          ),
-          Slider(
-            value: audioService.volume.value,
-            min: 0,
-            max: 1,
-            divisions: 10,
-            label: '${(audioService.volume.value * 100).round()}%',
-            onChanged: audioService.setVolume,
-            activeColor: theme.colorScheme.primary,
-            inactiveColor: theme.colorScheme.surfaceVariant,
-          ),
-
-        ],
-      );
-    });
+            Slider(
+              value: audioService.volume.value,
+              min: 0,
+              max: 1,
+              onChanged: audioService.setVolume,
+              activeColor: theme.colorScheme.primary,
+              inactiveColor: theme.colorScheme.surfaceVariant,
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }

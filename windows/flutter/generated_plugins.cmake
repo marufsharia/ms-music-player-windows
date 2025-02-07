@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
+  bitsdojo_window_windows
   just_audio_windows
   screen_retriever
   window_manager

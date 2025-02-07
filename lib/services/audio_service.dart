@@ -171,6 +171,7 @@ class AudioService extends GetxService {
       _player.play();
     } else {
       playNext();
+      _player.play();
     }
   }
 
