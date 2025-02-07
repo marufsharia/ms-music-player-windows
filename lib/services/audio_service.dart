@@ -13,12 +13,14 @@ class AudioService extends GetxService {
   RxString currentSongTitle = "".obs;
   RxString currentArtistName = "".obs;
   RxString currentPosition = "0:00".obs;
+  RxString currentAlbumArt = "".obs;
   RxString totalDuration = "0:00".obs;
   RxDouble position = 0.0.obs;
   RxDouble duration = 0.0.obs;
   RxDouble volume = 0.5.obs;
   RxInt currentIndex = (-1).obs;
   RxBool isMuted = false.obs;
+  RxBool isLoading = false.obs;
 
   @override
   void onInit() {
@@ -47,21 +49,16 @@ class AudioService extends GetxService {
   }
 
   Future<void> loadAudioSource(int index) async {
-   //  Get.log("Loading audio before: $index");
-   //
-   // if (index.isNegative || index >= playlistController.songs.length) return;
-
-
-    Get.log(playlistController.songs.toString());
+    if (index.isNegative || index >= playlistController.songs.length) return;
     currentIndex.value = index;
     final song = playlistController.songs[index];
-    Get.log("Loading audio: $song");
     try {
       currentSongTitle.value = song['title'] ?? 'Unknown Title';
       currentArtistName.value = song['artist'] ?? 'Unknown Artist';
+      currentAlbumArt.value = song['album_art'] ?? '';
 
       await _player.setAudioSource(
-        AudioSource.uri(Uri.file(song['path']!)),
+        AudioSource.uri(Uri.file(song['file_path']!)),
         initialIndex: index,
         preload: true,
       );
@@ -69,7 +66,6 @@ class AudioService extends GetxService {
       Get.snackbar("Error", "Failed to load audio: ${e.toString()}");
     }
   }
-
 
   /// Play audio
   Future<void> play() async {
@@ -97,9 +93,6 @@ class AudioService extends GetxService {
       print("Error stopping audio: $e");
     }
   }
-
-
-
 
   /// Toggle shuffle mode
   void toggleShuffle() {
@@ -147,7 +140,6 @@ class AudioService extends GetxService {
     }
   }
 
-
   /// Format a [Duration] into a string (MM:SS)
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -155,7 +147,6 @@ class AudioService extends GetxService {
     final seconds = twoDigits(duration.inSeconds.remainder(60));
     return "$minutes:$seconds";
   }
-
 
   Future<void> playNext() async {
     if (playlistController.songs.isEmpty) return;
@@ -174,8 +165,6 @@ class AudioService extends GetxService {
     }
   }
 
-
-
   void _handlePlaybackCompletion() {
     if (isRepeatEnabled.value) {
       _player.seek(Duration.zero);
@@ -184,7 +173,6 @@ class AudioService extends GetxService {
       playNext();
     }
   }
-
 
   /// Dispose the audio player when the service is no longer needed
   @override

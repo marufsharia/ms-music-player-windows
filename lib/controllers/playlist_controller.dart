@@ -1,114 +1,93 @@
-import 'package:get/get.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
 import 'package:file_picker/file_picker.dart';
-
+import 'package:get/get.dart';
+import 'package:ms_music_player/services/metadata_service.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common/sqlite_api.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 class PlaylistController extends GetxController {
-  final RxList<Map<String, String>> songs = <Map<String, String>>[].obs;
-    Database? _db;
+ var _db;
+  final RxList<Map<String, dynamic>> songs = <Map<String, dynamic>>[].obs;
+  final metadataService = MetadataService();
 
   @override
-  void onInit() async{
+  void onInit() {
     super.onInit();
-   await _initDatabase();
+    _initDatabase();
   }
 
-  Future<void> _initDatabase() async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'playlist.db');
+ Future<void> _initDatabase() async {
+   var databaseFactory = databaseFactoryFfi;
+   _db = await databaseFactory.openDatabase(inMemoryDatabasePath);
 
-    _db = await openDatabase(
-      path,
-      version: 1,
-      onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE IF NOT EXISTS playlist (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            file_path TEXT UNIQUE NOT NULL,
-            title TEXT,
-            artist TEXT,
-            album TEXT
-          )
-        ''');
-      },
-    );
-    await loadSongsFromDatabase();
-  }
-
-  Future<void> loadSongsFromDatabase() async {
-    if (_db == null) return; // ✅ Ensure database is initialized
-
-    try {
-      final records = await _db!.query('playlist');
-      songs.assignAll(records.map(_convertRecord).toList());
-    } catch (e) {
-      Get.snackbar("Error", "Failed to load songs: ${e.toString()}");
-    }
-  }
-
-  Map<String, String> _convertRecord(Map<String, dynamic> record) {
-    return {
-      'path': record['file_path'] as String,
-      'title': record['title'] as String? ?? 'Unknown Title',
-      'artist': record['artist'] as String? ?? 'Unknown Artist',
-      'album': record['album'] as String? ?? 'Unknown Album',
-    };
-  }
-
-  Future<List<Map<String, String>>> processFiles(List<PlatformFile> files) async {
-    List<Map<String, String>> newSongs = [];
-
-    for (final file in files) {
-      if (file.path == null) continue;
-
-      newSongs.add({
-        'path': file.path!,
-        'title': file.name,  // Metadata পার্সিং এখন বাদ দেওয়া হয়েছে
-        'artist': "Unknown Artist",
-        'album': "Unknown Album",
-      });
-    }
-
-    return newSongs;
-  }
-
-  Future<void> addSongsToDatabase(List<Map<String, String>> songsData) async {
-    final batch = _db?.batch();
-    for (final song in songsData) {
-      batch?.insert(
-        'playlist',
-        {
-          'file_path': song['path'],
-          'title': song['title'],
-          'artist': song['artist'],
-          'album': song['album'],
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore,
+   try {
+     await _db.execute('''
+      CREATE TABLE songs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        artist TEXT,
+        album TEXT,
+        duration TEXT,
+        album_art TEXT,
+        file_path TEXT UNIQUE
       );
+    ''');
+
+     print("✅ Database initialized successfully!");
+   } catch (e) {
+     print("❌ Database initialization failed: $e");
+   }
+ }
+
+   Future<List<Map<String, dynamic>>> processFiles(List<PlatformFile> files) async {
+     List<Map<String, dynamic>> newSongs = [];
+
+     for (var file in files) {
+       if (file.path == null) {
+         print("❌ Skipping file: No path available");
+         continue;
+       }
+
+       String filePath = file.path!;
+       final metadata = await metadataService.extractMetadata(filePath);
+       final albumArtPath = await metadataService.extractAlbumArt(filePath);
+
+       newSongs.add({
+         'title': metadata['title'] ?? 'Unknown Title',
+         'artist': metadata['artist'] ?? 'Unknown Artist',
+         'album': metadata['album'] ?? 'Unknown Album',
+         'duration': metadata['duration'] ?? '00:00',
+         'album_art': albumArtPath ?? '',
+         'file_path': filePath,
+       });
+     }
+
+     return newSongs;
+   }
+
+
+  Future<void> addSongsToDatabase(List<Map<String, dynamic>> songsToAdd) async {
+    if (_db == null) return; // Prevent crash
+    for (var song in songsToAdd) {
+      await _db?.insert('songs', song, conflictAlgorithm: ConflictAlgorithm.ignore);
     }
-    await batch?.commit();
-    songs.addAll(songsData);
     loadSongsFromDatabase();
   }
 
-  Future<void> removeSong(int index) async {
-    if (index < 0 || index >= songs.length) return;
+  Future<void> loadSongsFromDatabase() async {
+    if (_db == null) return; // Prevent crash
+    final List<Map<String, dynamic>> dbSongs = await _db?.query('songs');
+    songs.assignAll(dbSongs);
+  }
 
-    try {
-      await _db!.delete(
-        'playlist',
-        where: 'file_path = ?',
-        whereArgs: [songs[index]['path']],
-      );
-      songs.removeAt(index);
-    } catch (e) {
-      Get.snackbar("Error", "Failed to remove song: ${e.toString()}");
-    }
+  Future<void> removeSong(int index) async {
+    if (_db == null) return; // Prevent crash
+    await _db?.delete('songs', where: 'id = ?', whereArgs: [songs[index]['id']]);
+    songs.removeAt(index);
   }
 
   @override
   void onClose() {
-    _db!.close();
+    _db?.close();
     super.onClose();
   }
 }

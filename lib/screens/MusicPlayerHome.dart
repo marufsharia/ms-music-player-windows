@@ -124,12 +124,10 @@ class MusicPlayerHome extends StatelessWidget {
                 ),
 
                 // Bottom Player Controls
-                Expanded(
-                  child: Container(
-                    color: Colors.grey[200],
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child:  PlayerControls(),
-                  ),
+                Container(
+                  color: Colors.grey[200],
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child:  PlayerControls(),
                 ),
               ],
             ),

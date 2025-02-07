@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../services/audio_service.dart';
@@ -23,28 +25,27 @@ class PlayerControls extends StatelessWidget {
             )
           ],
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildSongInfo(theme),
-              const SizedBox(height: 16),
-              _buildPlaybackControls(theme),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(child: _buildProgressControls(theme)),
-                  Padding(
-                    padding: const EdgeInsets.only(
-                        left: 16, right: 8, top: 0, bottom: 16),
-                    child: _buildVolumeControls(theme),
-                  ),
-                ],
-              ),
-            ],
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildSongInfo(theme),
+            const SizedBox(height: 16),
+            _buildPlaybackControls(theme),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(child: _buildProgressControls(theme)),
+                Padding(
+                  padding: const EdgeInsets.only(
+                      left: 16, right: 8, top: 0, bottom: 16),
+                  child: _buildVolumeControls(theme),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
         ),
       );
     });
@@ -56,8 +57,12 @@ class PlayerControls extends StatelessWidget {
         CircleAvatar(
           radius: 24,
           backgroundColor: theme.colorScheme.primaryContainer,
-          child: Icon(Icons.music_note,
-              color: theme.colorScheme.onPrimaryContainer),
+          backgroundImage: audioService.currentAlbumArt.value.isNotEmpty
+              ? FileImage(File(audioService.currentAlbumArt.value))
+              : null,
+          child: audioService.currentAlbumArt.value.isEmpty
+              ? Icon(Icons.music_note, color: theme.colorScheme.onPrimaryContainer)
+              : null,
         ),
         const SizedBox(width: 12),
         Expanded(
