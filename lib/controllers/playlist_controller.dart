@@ -1,43 +1,25 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
+import 'package:ms_music_player/services/database_service.dart';
 import 'package:ms_music_player/services/metadata_service.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:sqflite_common/sqlite_api.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class PlaylistController extends GetxController {
-  var _db;
-  final RxList<Map<String, dynamic>> songs = <Map<String, dynamic>>[].obs;
-  final metadataService = MetadataService();
 
+  final metadataService = MetadataService();
+  RxList<Map<String, dynamic>> songs = <Map<String, dynamic>>[].obs;
+  final DatabaseService _dbService = Get.find();
+  final isLoading = false.obs;
   @override
   void onInit() {
     super.onInit();
-    _initDatabase();
   }
 
-  Future<void> _initDatabase() async {
-    var databaseFactory = databaseFactoryFfi;
-    _db = await databaseFactory.openDatabase(inMemoryDatabasePath);
-
-    try {
-      await _db.execute('''
-      CREATE TABLE songs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT,
-        artist TEXT,
-        album TEXT,
-        duration TEXT,
-        album_art TEXT,
-        file_path TEXT UNIQUE
-      );
-    ''');
-
-      print("✅ Database initialized successfully!");
-    } catch (e) {
-      print("❌ Database initialization failed: $e");
-    }
+  @override
+  void onReady() async {
+    await loadAllSongs();
+    super.onReady();
   }
+
 
   Future<List<Map<String, dynamic>>> processFiles(
       List<PlatformFile> files) async {
@@ -52,53 +34,60 @@ class PlaylistController extends GetxController {
       String filePath = file.path!;
       final metadata = await metadataService.extractMetadata(filePath);
       final albumArtPath = await metadataService.extractAlbumArt(filePath);
-
-      newSongs.add({
+      // Add to database with proper structure
+      await _dbService.addMediaFile([{
         'title': metadata['title'] ?? 'Unknown Title',
         'artist': metadata['artist'] ?? 'Unknown Artist',
         'album': metadata['album'] ?? 'Unknown Album',
-        'duration': metadata['duration'] ?? '00:00',
+        'duration': metadata['duration']?.toString() ?? '0:00',
         'album_art': albumArtPath ?? '',
-        'file_path': filePath,
-      });
+        'file_path': filePath
+      }]);
     }
 
     return newSongs;
   }
 
+  Future<void> loadAllSongs() async {
+    isLoading.value = true;
+    songs.value = await _dbService.getAllMediaFiles();
+    isLoading.value = false;
+  }
+
   //add single song to database as player playlist queue
-  Future<void> addSongToDatabase(Map<String, dynamic> songToAdd) async {
-    if (_db == null) return; // Prevent crash
-    await _db?.insert('songs', songToAdd,
-        conflictAlgorithm: ConflictAlgorithm.ignore);
-    loadSongsFromDatabase();
-  }
-
   Future<void> addSongsToDatabase(List<Map<String, dynamic>> songsToAdd) async {
-    if (_db == null) return; // Prevent crash
-    for (var song in songsToAdd) {
-      await _db?.insert('songs', song,
-          conflictAlgorithm: ConflictAlgorithm.ignore);
-    }
-    loadSongsFromDatabase();
+    await _dbService.addMediaFile(songsToAdd);
+    await loadAllSongs();
   }
 
-  Future<void> loadSongsFromDatabase() async {
-    if (_db == null) return; // Prevent crash
-    final List<Map<String, dynamic>> dbSongs = await _db?.query('songs');
-    songs.assignAll(dbSongs);
-  }
 
-  Future<void> removeSong(int index) async {
-    if (_db == null) return; // Prevent crash
-    await _db
-        ?.delete('songs', where: 'id = ?', whereArgs: [songs[index]['id']]);
+
+
+  /*Future<void> removeSong(int index) async {
+    if (_dbService == null) return; // Prevent crash
+    _dbService?.delete('songs', where: 'id = ?', whereArgs: [songs[index]['id']]);
     songs.removeAt(index);
+  }*/
+
+
+  Future<void> createPlaylist(String name) async {
+    await _dbService.createPlaylist(name);
+  }
+
+  Future<List<Map<String, dynamic>>> getPlaylists() async {
+    return await _dbService.getPlaylists();
+  }
+
+  Future<void> addSongToPlaylist(int playlistId, String songPath) async {
+    await _dbService.addSongToPlaylist(playlistId, songPath);
+  }
+
+  Future<List<Map<String, dynamic>>> getPlaylistSongs(int playlistId) async {
+    return await _dbService.getPlaylistSongs(playlistId);
   }
 
   @override
   void onClose() {
-    _db?.close();
     super.onClose();
   }
 }

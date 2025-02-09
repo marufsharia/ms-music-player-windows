@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:ms_music_player/route/route_manager.dart';
 import '../services/audio_service.dart';
 
 class PlayerControls extends StatelessWidget {
@@ -86,8 +87,8 @@ class PlayerControls extends StatelessWidget {
             icon: Icon(Icons.shuffle),
             style: IconButton.styleFrom(
               backgroundColor: audioService.isShuffleEnabled.value
-            ? theme.colorScheme.primary
-                : null, // Background color
+                  ? theme.colorScheme.primary
+                  : null, // Background color
               shape: const CircleBorder(),
             ),
             color: audioService.isShuffleEnabled.value
@@ -129,17 +130,31 @@ class PlayerControls extends StatelessWidget {
   }
 
   Widget _buildProgressControls(ThemeData theme) {
-    return Column(
+    return Row(
       children: [
-        Slider(
-          value:
-              audioService.position.value.clamp(0, audioService.duration.value),
-          min: 0,
-          max: audioService.duration.value,
-          onChangeEnd: audioService.seek,
-          activeColor: theme.colorScheme.primary,
-          inactiveColor: theme.colorScheme.surfaceVariant,
-          onChanged: (double value) {},
+        Text(
+          audioService.totalDuration.value.toString(),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        Expanded(
+          child: Slider(
+            value:
+                audioService.position.value.clamp(0, audioService.duration.value),
+            min: 0,
+            max: audioService.duration.value,
+            onChangeEnd: audioService.seek,
+            activeColor: theme.colorScheme.primary,
+            inactiveColor: theme.colorScheme.surfaceVariant,
+            onChanged: (double value) {},
+          ),
+        ),
+        Text(
+          audioService.currentPosition.value.toString(),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     );
@@ -149,7 +164,10 @@ class PlayerControls extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        IconButton(icon: Icon(Icons.equalizer), onPressed: () {}),
+        IconButton(
+          icon: Icon(Icons.equalizer),
+          onPressed: () => Get.toNamed(Routes.equalizerPage),
+        ),
         // EQ Button
         IconButton(icon: Icon(Icons.playlist_play), onPressed: () {}),
         // Playlist Button

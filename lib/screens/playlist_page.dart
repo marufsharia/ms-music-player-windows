@@ -29,27 +29,32 @@ class _PlaylistPageState extends State<PlaylistPage> {
         allowMultiple: true,
       );
       if (result == null) return;
+
       final newSongs = await playlistController.processFiles(result.files);
       await playlistController.addSongsToDatabase(newSongs);
+
       if (newSongs.isNotEmpty) {
+        await playlistController.loadAllSongs();
         audioService.loadAudioSource(0);
-        audioService.play();
+        await audioService.play();
       }
     } catch (e) {
-      Get.log(e.toString());
+      Get.snackbar('Error', 'Failed to add songs: ${e.toString()}');
     }
   }
+
 
   @override
   void initState() {
     super.initState();
-    playlistController.loadSongsFromDatabase();
+   // playlistController.loadSongsFromDatabase();
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.colorScheme.background,
       body: LayoutBuilder(
         builder: (context, constraints) {
           bool isWideScreen = constraints.maxWidth > 800;
@@ -131,8 +136,9 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                   return GestureDetector(
                                     onTap: () async {
                                       audioService.isLoading.value = true;
-                                      await audioService.loadAudioSource(index);
-                                      await audioService.play();
+                                      //await audioService.loadAudioSource(index);
+                                      await audioService.playSong(playlistController.songs[index]);
+                                      //await audioService.play();
                                       audioService.isLoading.value = false;
                                     },
                                     child: Container(
@@ -148,11 +154,12 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                                   BorderRadius.circular(12),
                                               image: song['album_art'] != null
                                                   ? DecorationImage(
-                                                      image: FileImage(File(
-                                                          song['album_art']!)),
-                                                      fit: BoxFit.cover,
-                                                      opacity: 0.9,
-                                                    )
+                                                image: song['album_art']?.isNotEmpty == true
+                                                    ? FileImage(File(song['album_art']!))
+                                                    : const AssetImage('assets/default_art.png') as ImageProvider,
+                                                fit: BoxFit.cover,
+                                                opacity: 0.9,
+                                              )
                                                   : null,
                                             ),
                                             child: Padding(
@@ -210,12 +217,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                               );
                             }),
                           ),
-                          Container(
-                            color: Colors.grey[200],
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            child: PlayerControls(),
-                          ),
+                          PlayerControls(),
                         ],
                       ),
                     ),

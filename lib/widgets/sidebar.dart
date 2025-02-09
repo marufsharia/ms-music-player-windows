@@ -35,8 +35,8 @@ class Sidebar extends StatelessWidget {
             context,
             Icons.home_outlined,
             "Home",
-            Routes.musicPlayerHome,
-                () => Get.toNamed(Routes.musicPlayerHome),
+            Routes.homePage,
+                () => Get.toNamed(Routes.homePage),
           ),
           _buildNavItem(
             context,
@@ -61,7 +61,10 @@ class Sidebar extends StatelessWidget {
           ),
           const Spacer(),
           const Divider(),
-          _buildNavItem(context, Icons.info_outline, "About", '', () {}),
+          _buildNavItem(context, Icons.info_outline, "About", '', () {
+            Get.toNamed(Routes.aboutPage);
+
+          }),
           _buildNavItem(context, Icons.exit_to_app, "Exit", '', () => exit(0)),
           Padding(
             padding: const EdgeInsets.all(16.0),

@@ -1,145 +1,162 @@
-import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:ms_music_player/controllers/home_controller.dart';
 import 'package:ms_music_player/services/audio_service.dart';
 import 'package:ms_music_player/widgets/custom_appbar.dart';
 import 'package:ms_music_player/widgets/player_controls.dart';
 import 'package:ms_music_player/widgets/sidebar.dart';
 
-class MusicPlayerHome extends StatelessWidget {
-  final AudioService _audioService = Get.put(AudioService());
-  final borderColor = Colors.white;
+class HomePage extends StatelessWidget {
+  final AudioService _audioService = Get.find();
+  final HomeController _homeController = Get.find();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: WindowBorder(
-        color: borderColor,
-        width: 1,
-        child: Column(
+      body: LayoutBuilder(builder: (context, constraints) {
+        bool isWideScreen = constraints.maxWidth > 800;
+        int crossAxisCount = isWideScreen ? 6 : 2;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CustomAppBar(
-              // CustomAppBar widget
-              title: 'MS Music Player',
+              title: 'Music Player',
               isBackButtonVisible: false,
-              onBackButtonPressed: () {
-                Get.back();
-              },
+              onBackButtonPressed: () => Get.back(),
             ),
             Expanded(
               child: Row(
                 children: [
-                  // Sidebar Navigation
-                  Sidebar(audioService: _audioService),
-                  // Main Content Area
+                  if (isWideScreen) Sidebar(audioService: _audioService),
                   Expanded(
-                    child: Column(
+                    child: Obx(() => Column(
                       children: [
-                        // Welcome Section
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color:
-                                  Theme.of(context).colorScheme.surfaceVariant,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  " Welcome to MS Music Player",
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineSmall
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  "Manage your library, play your favorite songs, and enjoy the music!",
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                                const SizedBox(height: 16),
-                                Wrap(
-                                  spacing: 16,
-                                  runSpacing: 16,
-                                  children: [
-                                    ElevatedButton.icon(
-                                      onPressed: () async {
-                                        await _audioService.loadAudioSource(0);
-                                        _audioService.play();
-                                      },
-                                      icon: const Icon(Icons.play_arrow),
-                                      label: const Text('Playing Now'),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        // Recently Played Section
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              "Recently Played",
-                              style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 16),
-                        Expanded(
-                          child: GridView.builder(
-                            padding: EdgeInsets.symmetric(horizontal: 16),
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 4,
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
-                            ),
-                            itemCount: 8, // Replace with your data count
-                            itemBuilder: (context, index) {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[850],
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    "Song Title ${index + 1}",
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-
-                        // Bottom Player Controls
-                        Container(
-                          padding:
-                              EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          child: PlayerControls(),
-                        ),
+                        _buildViewToggle(),
+                        _buildSectionHeader("Favorites"),
+                        _buildSongSection(_homeController.favoriteSongs, true, crossAxisCount),
+                        _buildSectionHeader("Recently Played"),
+                        _buildSongSection(_homeController.recentSongs, false, crossAxisCount),
+                        PlayerControls(),
                       ],
-                    ),
+                    )),
                   ),
                 ],
               ),
             ),
           ],
+        );
+      }),
+    );
+  }
+
+  Widget _buildViewToggle() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        IconButton(
+          icon: Icon(_homeController.isGridView() ? Icons.list : Icons.grid_view),
+          onPressed: (){
+            _homeController.isGridView.value= !_homeController.isGridView.value;
+          },
         ),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
       ),
     );
+  }
+
+  Widget _buildSongSection(RxList<Map<String, dynamic>> songs, bool isFavorite, int crossAxisCount) {
+    return Expanded(
+      child: _homeController.isGridView.value
+          ? _buildGridView(_homeController.favoriteSongs, true, crossAxisCount)
+          : _buildListView(_homeController.favoriteSongs, true),
+    );
+  }
+
+  Widget _buildListView(RxList<Map<String, dynamic>> songs, bool isFavorite) {
+    return ListView.builder(
+      itemCount: songs.length,
+      itemBuilder: (context, index) {
+        final song = songs[index];
+        return Dismissible(
+          key: Key(song['file_path']),
+          direction: isFavorite ? DismissDirection.none : DismissDirection.endToStart,
+          onDismissed: (direction) => _homeController.removeRecent(index),
+          background: Container(
+            color: Colors.red,
+            child: const Icon(Icons.delete, color: Colors.white),
+          ),
+          child: ListTile(
+            leading: Icon(
+              isFavorite ? Icons.favorite : Icons.history,
+              color: isFavorite ? Colors.red : Colors.blue,
+            ),
+            title: Text(song['title']),
+            subtitle: Text(song['artist']),
+            onTap: () => _handleSongTap(song),
+            trailing: isFavorite
+                ? IconButton(
+              icon: const Icon(Icons.remove_circle, color: Colors.grey),
+              onPressed: () => _homeController.toggleFavorite(song),
+            )
+                : null,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildGridView(RxList<Map<String, dynamic>> songs, bool isFavorite, int crossAxisCount) {
+    return GridView.builder(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        childAspectRatio: 3 / 2,
+      ),
+      itemCount: songs.length,
+      itemBuilder: (context, index) {
+        Get.log('Building grid item: $index');
+        final song = songs[index];
+        return GestureDetector(
+          onTap: () => _handleSongTap(song),
+          child: Card(
+            elevation: 2,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isFavorite ? Icons.favorite : Icons.history,
+                  color: isFavorite ? Colors.red : Colors.blue,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  song['title'],
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  song['artist'],
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _handleSongTap(Map<String, dynamic> song) {
+    _audioService.playSong(song);
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter/return_code.dart';
@@ -7,39 +8,49 @@ import 'package:path_provider/path_provider.dart';
 
 class MetadataService {
   Future<Map<String, String>> extractMetadata(String audioFilePath) async {
-    final ffmpegPath = await setupFFmpeg();
+    try {
+      final ffmpegPath = await setupFFmpeg();
 
-    ProcessResult result = await Process.run(ffmpegPath, [
-      '-i',
-      audioFilePath,
-    ]);
+      ProcessResult result = await Process.run(ffmpegPath, [
+        '-i',
+        audioFilePath,
+      ]);
 
-    String output =
-        result.stderr.toString(); // FFmpeg outputs metadata in stderr
+      String output =
+          result.stderr.toString(); // FFmpeg outputs metadata in stderr
 
-    RegExp titleRegex = RegExp(r'title\s*:\s*(.+)');
-    RegExp artistRegex = RegExp(r'artist\s*:\s*(.+)');
-    RegExp albumRegex = RegExp(r'album\s*:\s*(.+)');
-    RegExp durationRegex = RegExp(r'Duration:\s*(\d+:\d+:\d+\.\d+)');
+      RegExp titleRegex = RegExp(r'title\s*:\s*(.+)');
+      RegExp artistRegex = RegExp(r'artist\s*:\s*(.+)');
+      RegExp albumRegex = RegExp(r'album\s*:\s*(.+)');
+      RegExp durationRegex = RegExp(r'Duration:\s*(\d+:\d+:\d+\.\d+)');
 
-    String title = titleRegex.firstMatch(output)?.group(1) ?? "Unknown Title";
-    String artist =
-        artistRegex.firstMatch(output)?.group(1) ?? "Unknown Artist";
-    String album = albumRegex.firstMatch(output)?.group(1) ?? "Unknown Album";
-    String duration = durationRegex.firstMatch(output)?.group(1) ?? "0:00";
+      String title = titleRegex.firstMatch(output)?.group(1) ?? "Unknown Title";
+      String artist =
+          artistRegex.firstMatch(output)?.group(1) ?? "Unknown Artist";
+      String album = albumRegex.firstMatch(output)?.group(1) ?? "Unknown Album";
+      String duration = durationRegex.firstMatch(output)?.group(1) ?? "0:00";
 
-    return {
-      'title': title,
-      'artist': artist,
-      'album': album,
-      'duration': duration,
-    };
+      return {
+        'title': title,
+        'artist': artist,
+        'album': album,
+        'duration': duration,
+      };
+    } catch (e) {
+      return {
+        'title': 'Unknown Title',
+        'artist': 'Unknown Artist',
+        'album': 'Unknown Album',
+        'duration': '00:00'
+      };
+    }
   }
 
   Future<String?> extractAlbumArt(String filePath) async {
     final ffmpegPath = await setupFFmpeg();
     final appDir = await getApplicationSupportDirectory();
-    final outputPath = '${appDir.path}${Platform.pathSeparator}album${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final outputPath =
+        '${appDir.path}${Platform.pathSeparator}album${DateTime.now().millisecondsSinceEpoch}.jpg';
 
     // Run FFmpeg to extract album art
     ProcessResult result = await Process.run(ffmpegPath, [
@@ -57,12 +68,10 @@ class MetadataService {
     }
   }
 
-
-
-
   Future<String> setupFFmpeg() async {
     final appDir = await getApplicationSupportDirectory();
-    final ffmpegDir = Directory('${appDir.path}${Platform.pathSeparator}ffmpeg');
+    final ffmpegDir =
+        Directory('${appDir.path}${Platform.pathSeparator}ffmpeg');
     final ffmpegPath = '${ffmpegDir.path}${Platform.pathSeparator}ffmpeg.exe';
 
     // Ensure FFmpeg folder exists
@@ -97,5 +106,4 @@ class MetadataService {
 
     return ffmpegPath;
   }
-
 }

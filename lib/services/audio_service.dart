@@ -1,10 +1,14 @@
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:ms_music_player/controllers/home_controller.dart';
 import 'package:ms_music_player/controllers/playlist_controller.dart';
+import 'package:ms_music_player/services/database_service.dart';
 
 class AudioService extends GetxService {
   final AudioPlayer _player = AudioPlayer();
-  final PlaylistController playlistController = Get.find();
+  late final PlaylistController playlistController;
+  late final HomeController homeController;
+  late final DatabaseService db;
 
   // Reactive Variables
   RxBool isPlaying = false.obs;
@@ -24,9 +28,14 @@ class AudioService extends GetxService {
 
   @override
   void onInit() {
-    super.onInit();
+    // Initialize dependencies after service creation
+    playlistController = Get.find<PlaylistController>();
+    homeController = Get.find<HomeController>();
+    db = Get.find<DatabaseService>();
+
     _setupAudioListeners();
     _player.setVolume(volume.value);
+    super.onInit();
   }
 
   void _setupAudioListeners() {
@@ -49,9 +58,10 @@ class AudioService extends GetxService {
   }
 
   Future<void> loadAudioSource(int index) async {
-    if (index.isNegative || index >= playlistController.songs.length) return;
     currentIndex.value = index;
+    if (index.isNegative || index >= playlistController.songs.length) return;
     final song = playlistController.songs[index];
+
     try {
       currentSongTitle.value = song['title'] ?? 'Unknown Title';
       currentArtistName.value = song['artist'] ?? 'Unknown Artist';
@@ -174,6 +184,50 @@ class AudioService extends GetxService {
       _player.play();
     }
   }
+
+  // In AudioService class
+  Future<void> playSong(Map<String, dynamic> song) async {
+    try {
+      // 1. Ensure playlist contains all songs
+      await playlistController.loadAllSongs();
+
+      // 2. Find song index in the complete playlist
+      final index = playlistController.songs
+          .indexWhere((s) => s['file_path'] == song['file_path']);
+
+      if (index == -1) {
+        Get.snackbar('Error', 'Song not found in library');
+        return;
+      }
+
+      // 3. Load and play the song
+      await loadAudioSource(index);
+      await play();
+
+      // 4. Add to recent plays
+      await _addToRecentPlays(song);
+      Get.log('Song played: ${song['title']}');
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to play song: ${e.toString()}');
+    }
+  }
+
+  // In AudioService
+  Future<void> _addToRecentPlays(Map<String, dynamic> song) async {
+    try {
+      await db.addRecentPlay(song);
+      homeController.recentSongs.insert(0, song);
+
+      // Keep only last 20 items
+      if (homeController.recentSongs.length > 20) {
+        homeController.recentSongs.removeLast();
+      }
+      homeController.recentSongs.refresh();
+    } catch (e) {
+      Get.log('Error adding to recent: $e');
+    }
+  }
+
 
   // get Audio player instance
   AudioPlayer get player => _player;
