@@ -2,11 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ms_music_player/route/route_manager.dart';
+import 'package:ms_music_player/services/sleep_timer_service.dart';
 import '../services/audio_service.dart';
 
 class PlayerControls extends StatelessWidget {
   final AudioService audioService = Get.find();
-
+  final  SleepTimerService sleepTimerService= Get.put(SleepTimerService());
   PlayerControls({super.key});
 
   @override
@@ -170,6 +171,9 @@ class PlayerControls extends StatelessWidget {
         ),
         // EQ Button
         IconButton(icon: Icon(Icons.playlist_play), onPressed: () {}),
+        IconButton(icon: Icon(Icons.timer), onPressed: () {
+          sleepTimerService.startTimer(Duration(minutes: 2));
+        }),
         // Playlist Button
         Row(
           children: [

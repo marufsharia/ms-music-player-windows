@@ -16,8 +16,6 @@ class LibraryManager extends GetxService {
   final metadataService = MetadataService();
   final AudioService audioService = Get.find();
 
-
-
   static final LibraryManager _instance = LibraryManager._internal();
 
   factory LibraryManager() {
@@ -40,16 +38,7 @@ class LibraryManager extends GetxService {
   Future<void> addCustomFolder(BuildContext context) async {
     String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
     if (selectedDirectory != null) {
-      await  _scanFolder(selectedDirectory);
-
-      // final newSongs = await playlistController.processFiles(result.files);
-      //
-      // await playlistController.addSongsToDatabase(newSongs);
-      // if (result == null) return;
-      // if (newSongs.isNotEmpty) {
-      //   audioService.loadAudioSource(0);
-      //   audioService.play();
-      // }
+      await _scanFolder(selectedDirectory);
     }
   }
 
@@ -74,16 +63,16 @@ class LibraryManager extends GetxService {
             'album_art': albumArtPath ?? '',
             'file_path': filePath,
           });
-         // await _dbService.addMediaFile(file.path);
-          await _dbService.addMediaFile(newSongs);
         }
       }
 
-      await playlistController.addSongsToDatabase(newSongs);
+     // Get.log("LibraryManager: _scanFolder() - Found ${newSongs.length} new songs in folder: $folderPath"); // Added log
       if (newSongs.isNotEmpty) {
-        audioService.loadAudioSource(0);
-        audioService.play();
+        await _dbService.addMediaFile(newSongs);
+       // Get.log("LibraryManager: _scanFolder() - Added ${newSongs.length} songs to database."); // Added log
+        await playlistController.addSongsToDatabase(newSongs); // Keep this for playlist queue
       }
+
     } catch (e) {
       Get.log('Error scanning folder: $e');
     } finally {
@@ -115,13 +104,14 @@ class LibraryManager extends GetxService {
 
   /// Retrieves all media files from the database
   Future<List<String>> getAllMediaFiles() async {
-    final db = await _dbService.database;
-    final List<Map<String, dynamic>> maps = await db.query('media_files');
-
-    return maps
-        .map((map) => map['file_path']?.toString() ?? '') // Null চেক করা হয়েছে
+    Get.log("LibraryManager: getAllMediaFiles() - Fetching media files from database..."); // Added log
+    final dbFiles = await _dbService.getAllMediaFiles();
+    final filePaths = dbFiles
+        .map((map) => map['file_path']?.toString() ?? '')
         .where((path) => path.isNotEmpty)
         .toList();
+    Get.log("LibraryManager: getAllMediaFiles() - Fetched ${filePaths.length} media files from database."); // Added log
+    return filePaths;
   }
 
   /// Checks if a file is a media file

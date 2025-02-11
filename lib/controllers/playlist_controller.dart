@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:ms_music_player/services/database_service.dart';
 import 'package:ms_music_player/services/metadata_service.dart';
 
@@ -84,6 +85,24 @@ class PlaylistController extends GetxController {
 
   Future<List<Map<String, dynamic>>> getPlaylistSongs(int playlistId) async {
     return await _dbService.getPlaylistSongs(playlistId);
+  }
+
+  Future<void> addRecording(String filePath) async {
+    // Extract metadata from the recording
+    final metadata = {
+      'title': 'Recording ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}',
+      'artist': 'User',
+      'album': 'Recordings',
+      'duration': '0:00', // You can calculate this later
+      'album_art': '', // Add a default recording icon path
+      'file_path': filePath,
+    };
+
+    // Add to database
+    await _dbService.addMediaFile([metadata]);
+
+    // Refresh the playlist
+    await loadAllSongs();
   }
 
   @override

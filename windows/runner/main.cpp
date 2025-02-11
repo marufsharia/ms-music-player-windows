@@ -2,6 +2,9 @@
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
 
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
+
 #include "flutter_window.h"
 #include "utils.h"
 

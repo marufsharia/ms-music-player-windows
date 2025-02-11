@@ -5,7 +5,9 @@ import 'package:ms_music_player/bindings/app_bindings.dart';
 import 'package:ms_music_player/controllers/home_controller.dart';
 import 'package:ms_music_player/controllers/library_controller.dart';
 import 'package:ms_music_player/controllers/playlist_controller.dart';
+import 'package:ms_music_player/controllers/radio_controller.dart';
 import 'package:ms_music_player/route/route_manager.dart';
+import 'package:ms_music_player/services/audio_recorder_service.dart';
 import 'package:ms_music_player/services/audio_service.dart';
 import 'package:ms_music_player/services/database_service.dart';
 import 'package:ms_music_player/services/metadata_service.dart';
@@ -20,13 +22,15 @@ Future<void> main() async {
 
 // Initialize core services first
   await Get.putAsync(() => DatabaseService().initialize());
-
+  Get.put(MetadataService());
   // Initialize controllers
   Get.put(PlaylistController());
+  Get.put(LibraryController());
   Get.put(HomeController());
-
+  Get.put(AudioRecorderService());
   // Initialize audio service last
   Get.put(AudioService());
+  Get.put(RadioController());
 
   runApp(MyApp());
   doWhenWindowReady(() {

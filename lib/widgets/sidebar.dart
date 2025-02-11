@@ -36,34 +36,47 @@ class Sidebar extends StatelessWidget {
             Icons.home_outlined,
             "Home",
             Routes.homePage,
-                () => Get.toNamed(Routes.homePage),
+            () => Get.toNamed(Routes.homePage),
           ),
           _buildNavItem(
             context,
             Icons.library_music_outlined,
             "Library",
             Routes.libraryPage,
-                () => Get.toNamed(Routes.libraryPage, arguments: audioService),
+            () => Get.toNamed(Routes.libraryPage, arguments: audioService),
           ),
           _buildNavItem(
             context,
             Icons.playlist_play_outlined,
             "Playlists",
             Routes.playListPage,
-                () => Get.toNamed(Routes.playListPage, arguments: audioService),
+            () => Get.toNamed(Routes.playListPage, arguments: audioService),
+          ),
+          _buildNavItem(
+            context,
+            Icons.playlist_play_outlined,
+            "Radio",
+            Routes.radioPage,
+            () => Get.toNamed(Routes.radioPage, arguments: audioService),
+          ),
+          _buildNavItem(
+            context,
+            Icons.mic,
+            "Recorder",
+            Routes.radioPage,
+            () => Get.toNamed(Routes.recorderPage, arguments: audioService),
           ),
           _buildNavItem(
             context,
             Icons.settings_outlined,
             "Settings",
             Routes.settingsPage,
-                () => Get.toNamed(Routes.settingsPage),
+            () => Get.toNamed(Routes.settingsPage),
           ),
           const Spacer(),
           const Divider(),
           _buildNavItem(context, Icons.info_outline, "About", '', () {
             Get.toNamed(Routes.aboutPage);
-
           }),
           _buildNavItem(context, Icons.exit_to_app, "Exit", '', () => exit(0)),
           Padding(
@@ -105,9 +118,10 @@ class Sidebar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 image: audioService.currentAlbumArt.value.isNotEmpty
                     ? DecorationImage(
-                  image: FileImage(File(audioService.currentAlbumArt.value)),
-                  fit: BoxFit.cover,
-                )
+                        image:
+                            FileImage(File(audioService.currentAlbumArt.value)),
+                        fit: BoxFit.cover,
+                      )
                     : null,
                 color: theme.colorScheme.primary.withOpacity(0.1),
               ),
@@ -132,7 +146,8 @@ class Sidebar extends StatelessWidget {
                   Text(
                     audioService.currentArtistName.value,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onPrimaryContainer.withOpacity(0.8),
+                      color:
+                          theme.colorScheme.onPrimaryContainer.withOpacity(0.8),
                     ),
                   ),
                 ],
@@ -154,12 +169,12 @@ class Sidebar extends StatelessWidget {
   }
 
   Widget _buildNavItem(
-      BuildContext context,
-      IconData icon,
-      String label,
-      String routeName,
-      VoidCallback onTap,
-      ) {
+    BuildContext context,
+    IconData icon,
+    String label,
+    String routeName,
+    VoidCallback onTap,
+  ) {
     final theme = Theme.of(context);
     final isSelected = Get.currentRoute == routeName;
 

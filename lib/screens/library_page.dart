@@ -1,65 +1,123 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:just_audio/just_audio.dart';
-import 'package:ms_music_player/controllers/playlist_controller.dart';
-import 'package:ms_music_player/services/audio_service.dart';
+import 'package:ms_music_player/controllers/library_controller.dart'; // Import LibraryController
+import 'package:ms_music_player/controllers/playlist_controller.dart'; // Import PlaylistController
+import 'package:ms_music_player/services/audio_service.dart'; // Import AudioService
 import 'package:ms_music_player/services/library_service.dart';
-import 'package:ms_music_player/controllers/library_controller.dart';
-import 'package:ms_music_player/services/metadata_service.dart';
 import 'package:ms_music_player/widgets/custom_appbar.dart';
 import 'package:ms_music_player/widgets/sidebar.dart';
 
-class LibraryPage extends StatelessWidget {
-  final LibraryManager _libraryManager = Get.put(LibraryManager());
-  final LibraryController _libraryController = Get.put(LibraryController());
-  final PlaylistController playlistController = Get.find();
-  final AudioService audioService = Get.find();
-  final metadataService = MetadataService();
+import '../widgets/horizontal_loading_indicator.dart';
+import 'library_tabs/albums_tab_view.dart';
+import 'library_tabs/all_songs_tab_view.dart';
+import 'library_tabs/artists_tab_view.dart';
+import 'library_tabs/favorites_tab_view.dart';
+import 'library_tabs/folders_tab_view.dart';
+import 'library_tabs/genres_tab_view.dart';
+import 'library_tabs/most_played_tab_view.dart';
+import 'library_tabs/playlists_tab_view.dart';
+import 'library_tabs/recommended_tab_view.dart';
+
+class LibraryPage extends StatefulWidget {
+  const LibraryPage({Key? key}) : super(key: key);
+
+  @override
+  LibraryPageState createState() => LibraryPageState();
+}
+
+class LibraryPageState extends State<LibraryPage>
+    with TickerProviderStateMixin {
+  late TabController _tabController;
+
+  final LibraryController _libraryController =
+      Get.find(); // Get LibraryController
+  final AudioService audioService = Get.find(); // Get AudioService
+  final PlaylistController playlistController =
+      Get.find(); // Get PlaylistController
+
+  RxBool _isAddingCustomFolderLoading = false.obs;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 9, vsync: this);
+    _tabController.addListener(_handleTabSelection);
+    _libraryController.refreshLibrary(); // Refresh library data on page load
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: LayoutBuilder(
-          builder: (context, constraints) {
-            bool isWideScreen = constraints.maxWidth > 800;
-          return Column(
-            children: [
-              CustomAppBar(
-                title: 'Library Management',
-                isBackButtonVisible: true,
-                onBackButtonPressed: () => Get.back(),
-              ),
-              Expanded(
-                child: Row(
-                  children: [
-                    // Sidebar
-                    if (isWideScreen) Sidebar(audioService: audioService),
+      body: LayoutBuilder(builder: (context, constraints) {
+        bool isWideScreen = constraints.maxWidth > 800;
+        return Column(
+          children: [
+            CustomAppBar(
+              title: 'Library Management',
+              isBackButtonVisible: true,
+              onBackButtonPressed: () => Get.back(),
+            ),
+            Expanded(
+              child: Row(
+                children: [
+                  // Sidebar
+                  if (isWideScreen) Sidebar(audioService: audioService),
 
-                    // Main Content Area
-                    Expanded(
+                  // Main Content Area
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
                       child: Column(
                         children: [
+                          _buildLibraryActions(context),
+                          const SizedBox(height: 16),
+                          TabBar(
+                            controller: _tabController,
+                            isScrollable: true,
+                            tabs: const [
+                              Tab(text: 'All Songs'),
+                              Tab(text: 'Folders'),
+                              Tab(text: 'Artists'),
+                              Tab(text: 'Albums'),
+                              Tab(text: 'Genres'),
+                              Tab(text: 'Playlists'),
+                              Tab(text: 'Favorites'),
+                              Tab(text: 'Most Played'),
+                              Tab(text: 'Recommended'),
+                            ],
+                          ),
                           Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                children: [
-                                  _buildLibraryActions(context),
-                                  const SizedBox(height: 16),
-                                  Expanded(child: _buildLibraryContents()),
-                                ],
-                              ),
+                            child: TabBarView(
+                              controller: _tabController,
+                              children: [
+                                AllSongsTabView(key: UniqueKey()),
+                                FoldersTabView(key: UniqueKey()),
+                                ArtistsTabView(key: UniqueKey()),
+                                AlbumsTabView(key: UniqueKey()),
+                                GenresTabView(key: UniqueKey()),
+                                PlaylistsTabView(key: UniqueKey()),
+                                FavoritesTabView(key: UniqueKey()),
+                                MostPlayedTabView(key: UniqueKey()),
+                                RecommendedTabView(key: UniqueKey()),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          );
-        }
-      ),
+            ),
+          ],
+        );
+      }),
     );
   }
 
@@ -91,100 +149,60 @@ class LibraryPage extends StatelessWidget {
             children: [
               ElevatedButton.icon(
                 onPressed: () async {
-                  await _libraryManager.scanDefaultFolders();
-                  _libraryController.refreshLibrary();
+                  // await LibraryManager.instance.scanDefaultFolders();
+                  await _libraryController.refreshLibrary();
                 },
                 icon: const Icon(Icons.folder),
                 label: const Text('Scan Default Folders'),
               ),
               ElevatedButton.icon(
                 onPressed: () async {
-                  await _libraryManager.addCustomFolder(context);
+                  _setAddingCustomFolderLoading(true); // Start loading
+                  await LibraryManager.instance.addCustomFolder(context);
                   _libraryController.refreshLibrary();
+                  _setAddingCustomFolderLoading(false); // Start loading
                 },
                 icon: const Icon(Icons.add),
                 label: const Text('Add Custom Folder'),
               ),
             ],
           ),
+          Center(
+            child: Obx(() => _isAddingCustomFolderLoading.value
+                ? const Padding(
+                    padding: EdgeInsets.only(top: 8.0),
+                    child: HorizontalLoadingIndicator(
+                      // Use HorizontalLoadingIndicator here
+                      text: "Scanning and adding to database...", // Add your text
+                    ),
+                  )
+                : const SizedBox.shrink()),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildLibraryContents() {
-    return Obx(() {
-      if (_libraryController.isLoading.value) {
-        return const Center(child: CircularProgressIndicator());
-      }
+  void _setAddingCustomFolderLoading(bool isLoading) {
+    _isAddingCustomFolderLoading.value = isLoading;
+  }
 
-      return Obx(() {
-        final mediaFiles = _libraryController.mediaFiles;
-
-        if (mediaFiles.isEmpty) {
-          return Center(
-            child: Text(
-              'No media files found.',
-              style: Theme.of(Get.context!).textTheme.bodyLarge,
-            ),
+  void _handleTabSelection() {
+    if (_tabController.indexIsChanging) {
+      switch (_tabController.index) {
+        case 0:
+          Get.snackbar(
+            'Page 0 tapped.',
+            'Page0tapped.',
           );
-        }
-
-        return ListView.separated(
-          itemCount: mediaFiles.length,
-          separatorBuilder: (context, index) => Divider(
-            color: Theme.of(context).dividerColor,
-            height: 1,
-          ),
-          itemBuilder: (context, index) {
-            final filePath = mediaFiles[index];
-            return ListTile(
-              leading: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.music_note,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              title: Text(
-                filePath.split('/').last,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              subtitle: Text(
-                filePath,
-                style: Theme.of(context).textTheme.bodySmall,
-                overflow: TextOverflow.ellipsis,
-              ),
-              onTap: () async{
-                final metadata = await metadataService.extractMetadata(filePath);
-                final albumArtPath = await metadataService.extractAlbumArt(filePath);
-                List<Map<String, dynamic>> newSongs = [];
-                newSongs.add({
-                  'title': metadata['title'] ?? 'Unknown Title',
-                  'artist': metadata['artist'] ?? 'Unknown Artist',
-                  'album': metadata['album'] ?? 'Unknown Album',
-                  'duration': metadata['duration'] ?? '00:00',
-                  'album_art': albumArtPath ?? '',
-                  'file_path': filePath,
-                });
-                playlistController.addSongsToDatabase(newSongs);
-                audioService.player.setAudioSource(
-                  AudioSource.uri(Uri.file(filePath)),
-                  initialIndex: index,
-                  preload: true,
-                );
-                audioService.play();
-               Get.log('File Path: $filePath');
-              },
-            );
-          },
-        );
-      });
-    });
+          break;
+        case 1:
+          Get.snackbar(
+            'Page 1 tapped.',
+            'Page 1 tapped.',
+          );
+          break;
+      }
+    }
   }
 }

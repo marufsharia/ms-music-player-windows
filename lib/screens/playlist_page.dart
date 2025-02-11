@@ -8,6 +8,7 @@ import 'package:ms_music_player/services/metadata_service.dart';
 import 'package:ms_music_player/widgets/custom_appbar.dart';
 import 'package:ms_music_player/widgets/player_controls.dart';
 import 'package:ms_music_player/widgets/sidebar.dart';
+
 import '../services/audio_service.dart';
 
 class PlaylistPage extends StatefulWidget {
@@ -156,7 +157,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                                   ? DecorationImage(
                                                 image: song['album_art']?.isNotEmpty == true
                                                     ? FileImage(File(song['album_art']!))
-                                                    : const AssetImage('assets/default_art.png') as ImageProvider,
+                                                    : const AssetImage('assets/images/default_art.jpg') as ImageProvider,
                                                 fit: BoxFit.cover,
                                                 opacity: 0.9,
                                               )
